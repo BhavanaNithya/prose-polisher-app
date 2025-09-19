@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clarity & Readability Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .highlight-passive { background-color: rgba(239, 68, 68, 0.4); }
+        .highlight-adverb { background-color: rgba(251, 191, 36, 0.4); }
+        .highlight-complex { background-color: rgba(96, 165, 250, 0.4); }
+        .highlight-jargon { background-color: rgba(16, 185, 129, 0.4); } /* Green */
+        .no-highlights span { background-color: transparent !important; }
+        .pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-6">
+    <div class="bg-gray-800 rounded-2xl shadow-2xl w-full max-w-7xl md:flex">
+        <!-- Main Editor Section -->
+        <div class="w-full md:w-3/5 p-8 border-r border-gray-700 flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h1 class="text-3xl font-bold text-gray-50">Clarity & Readability Analyzer</h1>
+                <button id="compare-btn" class="px-4 py-2 bg-blue-600 rounded-full text-sm font-medium hover:bg-blue-500 transition-colors hidden">Compare</button>
+            </div>
+            <p class="text-gray-400 mb-6">Paste your text below and get instant, privacy-focused feedback. Your writing never leaves your browser.</p>
+            <div class="flex-grow">
+                <div
+                    id="editor"
+                    contenteditable="true"
+                    class="w-full h-full bg-gray-700 text-gray-200 p-6 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none transition-colors"
+                    spellcheck="false"
+                ></div>
+            </div>
+        </div>
+
+        <!-- Analysis Panel -->
+        <div class="w-full md:w-2/5 p-8 bg-gray-800 flex flex-col">
+            <h2 class="text-2xl font-bold text-gray-50 mb-6">Analysis</h2>
+            
+            <div id="analysis-results" class="space-y-6">
+                <!-- Analysis results will be dynamically inserted here -->
+                <div class="flex flex-col space-y-2">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-4 h-4 bg-red-500 rounded-full"></span>
+                        <span class="text-gray-400">Passive Voice</span>
+                        <span id="passive-count" class="text-red-400 font-semibold ml-auto">0</span>
+                        <button id="fix-passive" class="ml-2 px-3 py-1 bg-red-600 rounded-full text-sm font-medium hover:bg-red-500 transition-colors">Fix</button>
+                    </div>
+                    <div id="passive-suggestions" class="text-sm text-gray-400 ml-6 hidden"></div>
+                </div>
+
+                <div class="flex flex-col space-y-2">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-4 h-4 bg-yellow-400 rounded-full"></span>
+                        <span class="text-gray-400">Adverbs</span>
+                        <span id="adverb-count" class="text-yellow-400 font-semibold ml-auto">0</span>
+                        <button id="fix-adverbs" class="ml-2 px-3 py-1 bg-yellow-600 rounded-full text-sm font-medium hover:bg-yellow-500 transition-colors">Fix</button>
+                    </div>
+                    <div id="adverb-suggestions" class="text-sm text-gray-400 ml-6 hidden"></div>
+                </div>
+
+                <div class="flex flex-col space-y-2">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-4 h-4 bg-blue-400 rounded-full"></span>
+                        <span class="text-gray-400">Complex Words</span>
+                        <span id="complex-count" class="text-blue-400 font-semibold ml-auto">0</span>
+                        <button id="fix-complex" class="ml-2 px-3 py-1 bg-blue-600 rounded-full text-sm font-medium hover:bg-blue-500 transition-colors">Fix</button>
+                    </div>
+                    <div id="complex-suggestions" class="text-sm text-gray-400 ml-6 hidden"></div>
+                </div>
+
+                <div class="flex flex-col space-y-2">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-4 h-4 bg-green-500 rounded-full"></span>
+                        <span class="text-gray-400">Jargon</span>
+                        <span id="jargon-count" class="text-green-400 font-semibold ml-auto">0</span>
+                        <button id="fix-jargon" class="ml-2 px-3 py-1 bg-green-600 rounded-full text-sm font-medium hover:bg-green-500 transition-colors">Fix</button>
+                    </div>
+                    <div id="jargon-suggestions" class="text-sm text-gray-400 ml-6 hidden"></div>
+                </div>
+            </div>
+            
+            <div class="mt-8">
+                <h3 class="text-lg font-semibold text-gray-300">AI Rewriting</h3>
+                <p class="text-xs text-gray-500 mb-2">Select a sentence and click "Rephrase" to get an AI-powered alternative.</p>
+                <button id="rephrase-btn" class="w-full px-4 py-2 bg-purple-600 rounded-lg text-sm font-medium hover:bg-purple-500 transition-colors" disabled>Rephrase with AI</button>
+                <div id="rephrase-output" class="mt-4 p-4 bg-gray-700 rounded-lg text-gray-200 hidden">
+                    <p id="rephrase-result" class="text-sm"></p>
+                    <button id="apply-rephrase-btn" class="mt-4 px-3 py-1 bg-green-600 rounded-full text-xs font-medium hover:bg-green-500 transition-colors hidden">Apply</button>
+                </div>
+            </div>
+
+            <div class="mt-8">
+                <p class="text-lg font-semibold text-gray-300">Readability Score:</p>
+                <p id="readability-score" class="text-5xl font-bold text-blue-500">N/A</p>
+                <p id="readability-grade" class="text-sm text-gray-400 mt-1">Grade Level: N/A</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compare Modal -->
+    <div id="compare-modal" class="fixed inset-0 bg-gray-950 bg-opacity-75 backdrop-blur-sm hidden flex items-center justify-center p-6 z-50">
+        <div class="bg-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-7xl">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold">Compare Versions</h3>
+                <div class="flex space-x-2">
+                    <button id="close-modal" class="text-gray-400 hover:text-white transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                    <button id="back-modal-btn" class="px-3 py-1 bg-gray-600 rounded-full text-sm font-medium hover:bg-gray-500 transition-colors">Back</button>
+                </div>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div>
+                    <h4 class="text-lg font-semibold text-gray-400 mb-2">Original Text</h4>
+                    <div id="original-text" class="bg-gray-700 p-4 rounded-lg text-gray-200 h-96 overflow-y-auto"></div>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold text-gray-400 mb-2">Edited Text</h4>
+                    <div id="edited-text" class="bg-gray-700 p-4 rounded-lg text-gray-200 h-96 overflow-y-auto"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const editor = document.getElementById('editor');
+        const readabilityScoreEl = document.getElementById('readability-score');
+        const readabilityGradeEl = document.getElementById('readability-grade');
+        const passiveCountEl = document.getElementById('passive-count');
+        const adverbCountEl = document.getElementById('adverb-count');
+        const complexCountEl = document.getElementById('complex-count');
+        const jargonCountEl = document.getElementById('jargon-count');
+        const passiveSuggestionsEl = document.getElementById('passive-suggestions');
+        const adverbSuggestionsEl = document.getElementById('adverb-suggestions');
+        const complexSuggestionsEl = document.getElementById('complex-suggestions');
+        const jargonSuggestionsEl = document.getElementById('jargon-suggestions');
+        const fixPassiveBtn = document.getElementById('fix-passive');
+        const fixAdverbsBtn = document.getElementById('fix-adverbs');
+        const fixComplexBtn = document.getElementById('fix-complex');
+        const fixJargonBtn = document.getElementById('fix-jargon');
+        const compareBtn = document.getElementById('compare-btn');
+        const compareModal = document.getElementById('compare-modal');
+        const closeModalBtn = document.getElementById('close-modal');
+        const backModalBtn = document.getElementById('back-modal-btn');
+        const originalTextEl = document.getElementById('original-text');
+        const editedTextEl = document.getElementById('edited-text');
+        const rephraseBtn = document.getElementById('rephrase-btn');
+        const rephraseOutput = document.getElementById('rephrase-output');
+        const rephraseResultEl = document.getElementById('rephrase-result');
+        const applyRephraseBtn = document.getElementById('apply-rephrase-btn');
+
+        let originalText = '';
+        let selectedSentence = '';
+        
+        const languageData = {
+            'en': {
+                passiveVoiceMap: {
+                    "was completed by": "completed", "was caused by": "caused", "was implemented by": "implemented", "is done by": "did", "was said by": "said", "is expected": "expect", "was given": "gave", "were seen": "saw", "is located": "locates", "was located": "located"
+                },
+                adverbMap: {
+                    "truly": "really", "exceptionally": "very", "quickly": "fast", "ultimately": "finally", "consequently": "so", "extremely": "very", "suddenly": "quickly", "gently": "softly", "slowly": "leisurely", "finally": "at last", "happily": "joyfully", "carefully": "cautiously", "perfectly": "exactly"
+                },
+                complexWordMap: {
+                    "inexplicable": "unexplainable", "subsequently": "later", "consequently": "so", "nevertheless": "however", "furthermore": "also", "ultimately": "finally", "considerably": "much", "additionally": "also", "nonetheless": "however", "unwavering": "steadfast"
+                },
+                jargonMap: {
+                    "synergy": "collaboration", "paradigm": "model", "low-hanging fruit": "easy wins", "leverage": "use", "best practices": "effective methods", "holistic": "complete", "onboarding": "training", "core competency": "specialty", "bandwidth": "capacity", "disruptive": "innovative"
+                },
+            }
+        };
+
+        const countSyllables = (word) => {
+            word = word.toLowerCase().replace(/[^a-z]/g, "");
+            if (word.length === 0) return 0;
+            
+            let count = 0;
+            const vowels = "aeiouy";
+            let prevIsVowel = false;
+            for (let i = 0; i < word.length; i++) {
+                const char = word[i];
+                const isVowel = vowels.includes(char);
+                if (isVowel && !prevIsVowel) {
+                    count++;
+                }
+                prevIsVowel = isVowel;
+            }
+            if (word.endsWith("e") && !word.endsWith("le")) {
+                count--;
+            }
+            if (count === 0) count = 1;
+            return count;
+        };
+
+        const analyzeText = () => {
+            const currentLanguage = 'en';
+            const { passiveVoiceMap, adverbMap, complexWordMap, jargonMap } = languageData[currentLanguage];
+            let text = editor.innerText;
+            if (!text.trim()) {
+                editor.innerHTML = '';
+                passiveCountEl.innerText = '0';
+                adverbCountEl.innerText = '0';
+                complexCountEl.innerText = '0';
+                jargonCountEl.innerText = '0';
+                readabilityScoreEl.innerText = 'N/A';
+                readabilityGradeEl.innerText = 'Grade Level: N/A';
+                passiveSuggestionsEl.classList.add('hidden');
+                adverbSuggestionsEl.classList.add('hidden');
+                complexSuggestionsEl.classList.add('hidden');
+                jargonSuggestionsEl.classList.add('hidden');
+                compareBtn.classList.add('hidden');
+                originalText = '';
+                return;
+            }
+
+            if (!originalText) {
+                originalText = text;
+                compareBtn.classList.remove('hidden');
+            }
+
+            let highlightedText = text;
+            const suggestions = { passive: new Set(), adverbs: new Set(), complex: new Set(), jargon: new Set() };
+            
+            // Highlight and collect Passive Voice
+            let passiveCount = 0;
+            for (const phrase in passiveVoiceMap) {
+                const regex = new RegExp(`(${phrase})`, 'gi');
+                const matches = highlightedText.match(regex);
+                if (matches) {
+                    passiveCount += matches.length;
+                    matches.forEach(match => suggestions.passive.add(match));
+                }
+                highlightedText = highlightedText.replace(regex, `<span class="highlight-passive">${phrase}</span>`);
+            }
+            
+            // Highlight and collect Adverbs
+            let adverbCount = 0;
+            for (const word in adverbMap) {
+                const regex = new RegExp(`\\b(${word})\\b`, 'gi');
+                const matches = highlightedText.match(regex);
+                if (matches) {
+                    adverbCount += matches.length;
+                    matches.forEach(match => suggestions.adverbs.add(match));
+                }
+                highlightedText = highlightedText.replace(regex, `<span class="highlight-adverb">${word}</span>`);
+            }
+            
+            // Highlight and collect Complex Words
+            let complexWordCount = 0;
+            for (const word in complexWordMap) {
+                const regex = new RegExp(`\\b(${word})\\b`, 'gi');
+                const matches = highlightedText.match(regex);
+                if (matches) {
+                    complexWordCount += matches.length;
+                    matches.forEach(match => suggestions.complex.add(match));
+                }
+                highlightedText = highlightedText.replace(regex, `<span class="highlight-complex">${word}</span>`);
+            }
+
+            // Highlight and collect Jargon
+            let jargonCount = 0;
+            for (const word in jargonMap) {
+                const regex = new RegExp(`\\b(${word})\\b`, 'gi');
+                const matches = highlightedText.match(regex);
+                if (matches) {
+                    jargonCount += matches.length;
+                    matches.forEach(match => suggestions.jargon.add(match));
+                }
+                highlightedText = highlightedText.replace(regex, `<span class="highlight-jargon">${word}</span>`);
+            }
+
+            // Update UI with counts and suggestions
+            editor.innerHTML = highlightedText;
+            passiveCountEl.innerText = passiveCount;
+            adverbCountEl.innerText = adverbCount;
+            complexCountEl.innerText = complexWordCount;
+            jargonCountEl.innerText = jargonCount;
+
+            updateSuggestions(passiveSuggestionsEl, Array.from(suggestions.passive).map(p => ({ original: p, suggestion: passiveVoiceMap[p.toLowerCase()] })));
+            updateSuggestions(adverbSuggestionsEl, Array.from(suggestions.adverbs).map(a => ({ original: a, suggestion: adverbMap[a.toLowerCase()] })));
+            updateSuggestions(complexSuggestionsEl, Array.from(suggestions.complex).map(c => ({ original: c, suggestion: complexWordMap[c.toLowerCase()] })));
+            updateSuggestions(jargonSuggestionsEl, Array.from(suggestions.jargon).map(j => ({ original: j, suggestion: jargonMap[j.toLowerCase()] })));
+            
+            // Calculate Flesch-Kincaid readability score
+            const sentences = text.split(/[.!?]+\s/).filter(s => s.trim().length > 0);
+            const wordCount = text.split(/\s+/).filter(w => w.length > 0).length;
+            const sentenceCount = sentences.length;
+
+            if (wordCount > 0 && sentenceCount > 0) {
+                let totalSyllables = 0;
+                text.split(/\s+/).forEach(word => {
+                    totalSyllables += countSyllables(word);
+                });
+                const score = 206.835 - 1.015 * (wordCount / sentenceCount) - 84.6 * (totalSyllables / wordCount);
+                readabilityScoreEl.innerText = score.toFixed(1);
+                let gradeLevel;
+                if (score >= 90) gradeLevel = "5th Grade";
+                else if (score >= 80) gradeLevel = "6th Grade";
+                else if (score >= 70) gradeLevel = "7th Grade";
+                else if (score >= 60) gradeLevel = "8th & 9th Grade";
+                else if (score >= 50) gradeLevel = "10th to 12th Grade";
+                else gradeLevel = "College Level";
+                readabilityGradeEl.innerText = `Grade Level: ${gradeLevel}`;
+            } else {
+                readabilityScoreEl.innerText = "N/A";
+                readabilityGradeEl.innerText = "Grade Level: N/A";
+            }
+        };
+
+        const updateSuggestions = (element, suggestions) => {
+            if (suggestions.length > 0) {
+                element.innerHTML = 'Suggestions: ' + suggestions.map(s => `<b>"${s.original}"</b> → "${s.suggestion}"`).join(', ');
+                element.classList.remove('hidden');
+            } else {
+                element.classList.add('hidden');
+            }
+        };
+
+        const fixText = (map) => {
+            let text = editor.innerText;
+            for (const key in map) {
+                const regex = new RegExp(`\\b(${key})\\b`, 'gi');
+                text = text.replace(regex, map[key]);
+            }
+            editor.innerText = text;
+            analyzeText();
+        };
+
+        const showCompareModal = () => {
+            originalTextEl.innerHTML = `<span class="no-highlights">${originalText}</span>`;
+            editedTextEl.innerHTML = editor.innerHTML;
+            compareModal.classList.remove('hidden');
+            compareModal.classList.add('flex');
+        };
+
+        const hideCompareModal = () => {
+            compareModal.classList.add('hidden');
+            compareModal.classList.remove('flex');
+        };
+
+        const handleRephrase = async () => {
+            const selection = window.getSelection();
+            selectedSentence = selection.toString().trim();
+
+            if (selectedSentence.length === 0) {
+                rephraseOutput.classList.add('hidden');
+                return;
+            }
+
+            rephraseBtn.disabled = true;
+            rephraseBtn.innerHTML = 'Rephrasing...';
+            rephraseBtn.classList.add('pulse');
+            rephraseResultEl.innerText = '';
+            applyRephraseBtn.classList.add('hidden');
+            rephraseOutput.classList.remove('hidden');
+
+            try {
+                const prompt = `Rephrase the following text for clarity, conciseness, and impact. Provide only the new sentence and nothing else: "${selectedSentence}"`;
+                
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    tools: [{ "google_search": {} }],
+                    systemInstruction: { parts: [{ text: "You are a world-class editor and copywriter. Your goal is to improve text by making it more direct and easier to read." }] },
+                };
+                
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    console.error('API Call Failed:', response.status, response.statusText);
+                    rephraseResultEl.innerText = `API call failed with status: ${response.status}. Please try again.`;
+                    return;
+                }
+
+                const result = await response.json();
+                const rephrasedText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (rephrasedText) {
+                    rephraseResultEl.innerText = rephrasedText;
+                    applyRephraseBtn.classList.remove('hidden');
+                } else {
+                    console.error('Unexpected API response structure:', result);
+                    rephraseResultEl.innerText = 'Could not rephrase. The API response was empty.';
+                }
+            } catch (error) {
+                console.error('API Error:', error);
+                rephraseResultEl.innerText = 'An error occurred. Please check the console for details.';
+            } finally {
+                rephraseBtn.disabled = false;
+                rephraseBtn.innerHTML = 'Rephrase with AI';
+                rephraseBtn.classList.remove('pulse');
+            }
+        };
+
+        const applyRephrase = () => {
+            const currentText = editor.innerText;
+            const newText = rephraseResultEl.innerText;
+            if (currentText && selectedSentence && newText) {
+                const updatedText = currentText.replace(selectedSentence, newText);
+                editor.innerText = updatedText;
+                rephraseOutput.classList.add('hidden');
+                analyzeText();
+            }
+        };
+
+        // Event listeners
+        editor.addEventListener('input', () => {
+            analyzeText();
+        });
+
+        editor.addEventListener('mouseup', () => {
+            const selection = window.getSelection().toString().trim();
+            if (selection.length > 0) {
+                rephraseBtn.disabled = false;
+            } else {
+                rephraseBtn.disabled = true;
+            }
+        });
+
+        fixPassiveBtn.addEventListener('click', () => fixText(languageData.en.passiveVoiceMap));
+        fixAdverbsBtn.addEventListener('click', () => fixText(languageData.en.adverbMap));
+        fixComplexBtn.addEventListener('click', () => fixText(languageData.en.complexWordMap));
+        fixJargonBtn.addEventListener('click', () => fixText(languageData.en.jargonMap));
+        compareBtn.addEventListener('click', showCompareModal);
+        closeModalBtn.addEventListener('click', hideCompareModal);
+        backModalBtn.addEventListener('click', hideCompareModal);
+        rephraseBtn.addEventListener('click', handleRephrase);
+        applyRephraseBtn.addEventListener('click', applyRephrase);
+        
+        // Initial analysis on page load if there is text in the editor
+        analyzeText();
+    </script>
+</body>
+</html>
